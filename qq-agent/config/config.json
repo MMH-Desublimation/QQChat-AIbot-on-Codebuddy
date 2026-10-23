@@ -6,7 +6,7 @@
     "selfQQ": 0
   },
   "identity": {
-    "ownerQQ": 0,
+    "ownerQQ": 821768404,
     "roleCard": "roles/小鲸鱼.md",
     "nickname": "小鲸鱼"
   },
@@ -37,8 +37,13 @@
     "replyDelayMaxMs": 2500
   },
   "allow": {
-    "groups": [],
-    "private": [],
+    "groups": [
+      1062033860,
+      240668446
+    ],
+    "private": [
+      821768404
+    ],
     "denyUsers": [],
     "denyKeywords": [],
     "mustReplyKeywords": []
@@ -52,8 +57,8 @@
       "poke": true,
       "keywords": [],
       "batchWindowMs": 8000,
-      "wakePerMinute": 1,
-      "wakePerHour": 12,
+      "wakePerMinute": 3,
+      "wakePerHour": 16,
       "replyCheckMs": 180000
     },
     "context": {

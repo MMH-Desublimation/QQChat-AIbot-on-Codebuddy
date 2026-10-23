@@ -258,8 +258,9 @@
     </div>
 
     <div class="row">
-      <button class="btn primary" id="btnSaveBehavior">保存行为设置</button>
-      <span class="hint">保存后需重启对话进程才生效。</span>
+      <button class="btn primary" id="btnSaveBehavior">仅保存</button>
+      <button class="btn" id="btnSaveBehaviorRestart">保存并重启对话</button>
+      <span class="hint">行为参数要重启对话进程才生效；点右边那个按钮一步到位。</span>
     </div>
   </section>
 
@@ -571,6 +572,18 @@ document.getElementById('btnSaveBehavior').onclick = async () => {
   };
   try { await api('/api/config', 'POST', patch); toast('行为设置已保存，重启对话后生效'); loadConfig(); refresh(); }
   catch (e) { toast('保存失败：' + e.message, true); }
+};
+
+document.getElementById('btnSaveBehaviorRestart').onclick = async () => {
+  document.getElementById('btnSaveBehavior').click();
+  // 等配置落盘再重启，避免重启时读到旧值
+  setTimeout(async () => {
+    try {
+      await api('/api/agent/restart', 'POST', {});
+      toast('已保存并重启对话，新参数已生效');
+      refresh();
+    } catch (e) { toast('重启失败：' + e.message, true); }
+  }, 700);
 };
 
 document.getElementById('btnSaveRole').onclick = async () => {

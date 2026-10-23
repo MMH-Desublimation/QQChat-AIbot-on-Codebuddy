@@ -55,13 +55,21 @@ export function createPersonaMode({ cfg, client }) {
 
   function wakeAllowed(key) {
     const w = cfg.persona?.wake ?? {};
-    const times = (wakeTimes.get(key) ?? []).filter((t) => nowMs() - t < 3600000);
+    const now = nowMs();
+    const times = (wakeTimes.get(key) ?? []).filter((t) => now - t < 3600000);
     const perMin = Number(w.wakePerMinute) || 1;
     const perHour = Number(w.wakePerHour) || 12;
-    const lastMinute = times.filter((t) => nowMs() - t < 60000).length;
-    if (lastMinute >= perMin) return { ok: false, reason: `每分钟唤醒上限 ${perMin}` };
-    if (times.length >= perHour) return { ok: false, reason: `每小时唤醒上限 ${perHour}` };
-    times.push(nowMs());
+    const inMinute = times.filter((t) => now - t < 60000);
+    if (inMinute.length >= perMin) {
+      // 还要等多久才腾出名额：最早那次唤醒满 60 秒即可
+      const oldest = Math.min(...inMinute);
+      return { ok: false, reason: `每分钟唤醒上限 ${perMin}`, retryAfterMs: Math.max(500, 60000 - (now - oldest) + 300) };
+    }
+    if (times.length >= perHour) {
+      const oldest = Math.min(...times);
+      return { ok: false, reason: `每小时唤醒上限 ${perHour}`, retryAfterMs: Math.max(1000, 3600000 - (now - oldest) + 500) };
+    }
+    times.push(now);
     wakeTimes.set(key, times);
     return { ok: true };
   }
@@ -171,7 +179,19 @@ export function createPersonaMode({ cfg, client }) {
     }
     const gate = wakeAllowed(key);
     if (!gate.ok) {
-      log.warn(`(${key}) 唤醒被限流（${gate.reason}），原因 ${reason} 已丢弃`);
+      // 明确找她的（@ / 私聊 / 拍一拍）不该被丢掉 —— 排队补一次，
+      // 否则会出现"@ 了也不理"的观感。闲聊类触发才直接丢。
+      if (reason === 'atMention' || reason === 'private' || reason === 'poke') {
+        const waitMs = gate.retryAfterMs ?? 60000;
+        log.info(`(${key}) ${reason} 被限流（${gate.reason}），${Math.round(waitMs / 1000)}s 后补唤醒`);
+        setTimeout(() => {
+          const again = wakeAllowed(key);
+          if (again.ok) runWake(key, target, `${reason}:deferred`);
+          else log.warn(`(${key}) 补唤醒仍被限流（${again.reason}），放弃`);
+        }, waitMs);
+      } else {
+        log.warn(`(${key}) 唤醒被限流（${gate.reason}），原因 ${reason} 已丢弃`);
+      }
       return;
     }
     runWake(key, target, reason);
