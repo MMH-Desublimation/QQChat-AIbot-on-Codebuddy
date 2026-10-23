@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小鲸鱼 · 控制台</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --card: #161c24;
+    --card-2: #1b2230;
+    --line: #263141;
+    --text: #e6edf5;
+    --muted: #8b9bb0;
+    --accent: #4aa8ff;
+    --ok: #3ddc97;
+    --warn: #ffb454;
+    --bad: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.55 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 18px 24px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #131a23, #0e1116);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .badge {
+    margin-left: auto; display: flex; gap: 8px; align-items: center;
+    font-size: 12px; color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .dot.off { background: var(--bad); }
+  .dot.wait { background: var(--warn); }
+
+  nav { display: flex; gap: 4px; padding: 12px 24px 0; flex-wrap: wrap; }
+  nav button {
+    background: transparent; border: 1px solid transparent; color: var(--muted);
+    padding: 8px 14px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13px;
+  }
+  nav button:hover { color: var(--text); }
+  nav button.active { color: var(--text); background: var(--card); border-color: var(--line); border-bottom-color: var(--card); }
+
+  main { padding: 0 24px 40px; }
+  section.tab { display: none; }
+  section.tab.active { display: block; }
+
+  .grid { display: grid; gap: 14px; }
+  .grid.c3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .grid.c2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; margin-top: 14px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; }
+
+  .kv { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13px; }
+  .kv .k { color: var(--muted); }
+  .kv .v { font-variant-numeric: tabular-nums; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  button.btn {
+    background: var(--card-2); color: var(--text); border: 1px solid var(--line);
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  button.btn:hover { border-color: var(--accent); color: #fff; }
+  button.btn.primary { background: #16508a; border-color: #1f6fbf; }
+  button.btn.danger { background: #4a1d22; border-color: #7a2c33; }
+  button.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  label.field { display: block; margin: 10px 0 0; }
+  label.field span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+  input[type=text], input[type=number], input[type=password], select, textarea {
+    width: 100%; background: #0c1117; color: var(--text);
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px;
+    font: inherit; outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { min-height: 260px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; line-height: 1.6; }
+
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--card-2); font-size: 11px; color: var(--muted); border: 1px solid var(--line); }
+  .pill.ok { color: var(--ok); border-color: #245b45; }
+  .pill.bad { color: var(--bad); border-color: #5c2a2a; }
+
+  .log {
+    background: #070b10; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; height: 260px; overflow: auto;
+    font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.7; color: #b9c7d6;
+  }
+  .log div { white-space: pre-wrap; word-break: break-all; }
+  .log .warn { color: var(--warn); }
+  .log .err { color: var(--bad); }
+
+  .toast {
+    position: fixed; right: 20px; bottom: 20px; z-index: 50;
+    background: var(--card-2); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    padding: 10px 16px; border-radius: 8px; font-size: 13px; opacity: 0;
+    transform: translateY(8px); transition: .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: none; }
+  .toast.bad { border-left-color: var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>小鲸鱼 · 控制台</h1>
+    <div class="sub" id="modelLine">模型 deepseek-v4.1-flash（已锁定）</div>
+  </div>
+  <div class="badge">
+    <span class="dot" id="dotAgent"></span><span id="txtAgent">读取中</span>
+    <span class="dot" id="dotNapcat"></span><span id="txtNapcat">读取中</span>
+  </div>
+</header>
+
+<nav>
+  <button class="active" data-tab="home">概览</button>
+  <button data-tab="behavior">行为</button>
+  <button data-tab="persona">人设</button>
+  <button data-tab="lists">名单</button>
+  <button data-tab="settings">设置</button>
+</nav>
+
+<main>
+  <!-- 概览 -->
+  <section class="tab active" id="tab-home">
+    <div class="card">
+      <h2>运行控制</h2>
+      <div class="row">
+        <button class="btn primary" id="btnStart">启动对话</button>
+        <button class="btn danger" id="btnStop">停止对话</button>
+        <button class="btn" id="btnRestart">重启对话</button>
+        <button class="btn" id="btnNapcat">启动 NapCat（需扫码）</button>
+      </div>
+      <div class="hint">「启动对话」只是把 qq-agent 拉起来；QQ 侧还需要 NapCat 在线（下面三个端口都亮才算就绪）。</div>
+    </div>
+
+    <div class="grid c3">
+      <div class="card">
+        <h2>QQ 链路</h2>
+        <div class="kv"><span class="k">WebUI 6099</span><span class="v" id="nWebui">—</span></div>
+        <div class="kv"><span class="k">HTTP 3000</span><span class="v" id="nHttp">—</span></div>
+        <div class="kv"><span class="k">WebSocket 3001</span><span class="v" id="nWs">—</span></div>
+      </div>
+      <div class="card">
+        <h2>对话进程</h2>
+        <div class="kv"><span class="k">状态</span><span class="v" id="aState">—</span></div>
+        <div class="kv"><span class="k">PID</span><span class="v" id="aPid">—</span></div>
+        <div class="kv"><span class="k">已运行</span><span class="v" id="aUp">—</span></div>
+      </div>
+      <div class="card">
+        <h2>今日用量</h2>
+        <div class="kv"><span class="k">消耗 token</span><span class="v" id="uTokens">—</span></div>
+        <div class="kv"><span class="k">对话轮次</span><span class="v" id="uRounds">—</span></div>
+        <div class="kv"><span class="k">日预算</span><span class="v" id="uBudget">—</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>会话上下文</h2>
+      <div class="row" style="margin-top:0">
+        <button class="btn" id="btnClearAll">全部清除</button>
+        <span class="hint" style="margin:0">清除后她就不再"记得"这些对话；当前正在跑的那一轮不受影响。</span>
+      </div>
+      <div id="ctxList" style="margin-top:10px">
+        <div class="hint">读取中…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>实时日志</h2>
+      <div class="log" id="logBox"><div>等待日志…</div></div>
+    </div>
+  </section>
+
+  <!-- 行为 -->
+  <section class="tab" id="tab-behavior">
+    <div class="grid c2">
+      <div class="card">
+        <h2>模式与思考强度</h2>
+        <label class="field"><span>运行模式</span>
+          <select id="mode">
+            <option value="chat">chat · 收到消息就回复</option>
+            <option value="persona">persona · 潜水观察，被叫才醒</option>
+          </select>
+        </label>
+        <label class="field"><span>思考强度（effort）</span>
+          <select id="effort">
+            <option value="minimal">minimal · 最快最省</option>
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high · 推荐</option>
+            <option value="xhigh">xhigh</option>
+            <option value="max">max · 最贵</option>
+          </select>
+        </label>
+        <div class="hint">模型固定为 deepseek-v4.1-flash，界面上不可改，避免误调成更贵的模型。</div>
+      </div>
+
+      <div class="card">
+        <h2>频率与预算</h2>
+        <label class="field"><span>每会话每分钟最多几轮</span><input type="number" id="rpm" min="1" max="60"></label>
+        <label class="field"><span>每会话每小时最多几轮</span><input type="number" id="rph" min="1" max="600"></label>
+        <label class="field"><span>每日 token 预算（0 = 不限）</span><input type="number" id="budget" min="0" step="100000"></label>
+        <label class="field"><span>单轮最多工具步数</span><input type="number" id="maxTurns" min="1" max="20"></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>发言形态</h2>
+      <div class="grid c2">
+        <div>
+          <label class="field"><span>单条字数上限</span><input type="number" id="maxChars" min="50" max="2000"></label>
+          <label class="field"><span>分条间隔下限（毫秒）</span><input type="number" id="gapMin" min="0" step="100"></label>
+          <label class="field"><span>分条间隔上限（毫秒）</span><input type="number" id="gapMax" min="0" step="100"></label>
+        </div>
+        <div>
+          <label class="field"><span>回复前随机延迟下限（毫秒）</span><input type="number" id="delayMin" min="0" step="100"></label>
+          <label class="field"><span>回复前随机延迟上限（毫秒）</span><input type="number" id="delayMax" min="0" step="100"></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>能力开关</h2>
+      <label class="field" style="margin-top:0">
+        <span>对外能力</span>
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text)">
+          <input type="checkbox" id="searchOn" style="width:auto">
+          允许简易搜索（只查"一搜就有"的公开事实，返回标题+摘要，不抓正文）
+        </label>
+      </label>
+      <div class="hint">这是模型**唯一**可用的工具。关掉后它连工具定义都看不到。文件、命令、代码、计算类能力不存在于工具表里，不是靠提示词约束。</div>
+    </div>
+
+    <div class="card">
+      <h2>拟真模式（潜水 + 唤醒）</h2>
+      <div class="grid c3">
+        <label class="field"><span>普通消息唤醒概率（0~1）</span><input type="number" id="wakeProb" min="0" max="1" step="0.01"></label>
+        <label class="field"><span>每分钟最多唤醒</span><input type="number" id="wakePm" min="1" max="10"></label>
+        <label class="field"><span>每小时最多唤醒</span><input type="number" id="wakePh" min="1" max="120"></label>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="wAt"> @我时醒</label>
+        <label><input type="checkbox" id="wName"> 叫名字时醒</label>
+        <label><input type="checkbox" id="wQ"> 提问时醒</label>
+        <label><input type="checkbox" id="wPoke"> 拍一拍时醒</label>
+      </div>
+      <label class="field"><span>唤醒关键词（逗号分隔）</span><input type="text" id="wakeKeywords" placeholder="小鲸鱼, DeepSeek, 大肥鱼"></label>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" id="btnSaveBehavior">保存行为设置</button>
+      <span class="hint">保存后需重启对话进程才生效。</span>
+    </div>
+  </section>
+
+  <!-- 人设 -->
+  <section class="tab" id="tab-persona">
+    <div class="card">
+      <h2>角色卡</h2>
+      <div class="kv"><span class="k">文件</span><span class="v" id="rolePath">—</span></div>
+      <div class="kv"><span class="k">字数</span><span class="v" id="roleCount">—</span></div>
+      <label class="field"><span>内容（保存即生效，无需重启）</span>
+        <textarea id="roleText" spellcheck="false"></textarea>
+      </label>
+      <div class="row">
+        <button class="btn primary" id="btnSaveRole">保存角色卡</button>
+        <button class="btn" id="btnReloadRole">重新载入</button>
+      </div>
+      <div class="hint">建议控制在 6000 字以内；太长会挤占上下文并增加每轮 token。</div>
+    </div>
+  </section>
+
+  <!-- 名单 -->
+  <section class="tab" id="tab-lists">
+    <div class="grid c2">
+      <div class="card">
+        <h2>放行范围</h2>
+        <label class="field"><span>群白名单（逗号或换行分隔）</span>
+          <textarea id="groups" style="min-height:110px"></textarea>
+        </label>
+        <label class="field"><span>私聊白名单</span>
+          <textarea id="privates" style="min-height:90px"></textarea>
+        </label>
+        <label class="field"><span>主人 QQ（可管理）</span><input type="text" id="ownerQQ"></label>
+      </div>
+      <div class="card">
+        <h2>屏蔽与触发</h2>
+        <label class="field"><span>账号黑名单（这些人的消息一律不理）</span>
+          <textarea id="denyUsers" style="min-height:90px"></textarea>
+        </label>
+        <label class="field"><span>词语黑名单（命中则不回应）</span>
+          <textarea id="denyKeywords" style="min-height:90px"></textarea>
+        </label>
+        <label class="field"><span>必回关键词（命中则一定看）</span>
+          <textarea id="mustReply" style="min-height:90px"></textarea>
+        </label>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btnSaveLists">保存名单</button>
+      <span class="hint">白名单为空 = 谁都不理（fail-closed，刻意如此）。保存后重启生效。</span>
+    </div>
+  </section>
+
+  <!-- 设置 -->
+  <section class="tab" id="tab-settings">
+    <div class="grid c2">
+      <div class="card">
+        <h2>CodeBuddy 凭据</h2>
+        <div class="kv"><span class="k">当前状态</span><span class="v" id="keyState">—</span></div>
+        <div class="kv"><span class="k">来源</span><span class="v" id="keySource">—</span></div>
+        <label class="field"><span>Api Key（只写不读，保存后仅显示掩码）</span>
+          <input type="password" id="apiKey" placeholder="ck_…" autocomplete="off">
+        </label>
+        <div class="row">
+          <button class="btn primary" id="btnSaveKey">保存 Key</button>
+          <button class="btn danger" id="btnClearKey">清除 Key</button>
+        </div>
+        <div class="hint">保存在 <code>data/secrets.json</code>（已 gitignore + ACL 收紧），不会出现在源码与页面里。环境变量 <code>CODEBUDDY_API_KEY</code> 优先级更高。</div>
+      </div>
+
+      <div class="card">
+        <h2>模型与计费</h2>
+        <div class="kv"><span class="k">模型</span><span class="v">deepseek-v4.1-flash（锁定）</span></div>
+        <div class="kv"><span class="k">计费口径</span><span class="v">CodeBuddy 账号积分</span></div>
+        <div class="kv"><span class="k">今日消耗</span><span class="v" id="sTokens">—</span></div>
+        <div class="hint">代码里硬编码了模型名，配置文件里写别的也不会生效，只会打一条告警。</div>
+        <div class="row"><button class="btn" id="btnOpenNapcat">打开 NapCat 面板（6099）</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TOKEN = new URLSearchParams(location.search).get('token') || '';
+let CFG = null;
+
+function toast(msg, bad) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.toggle('bad', Boolean(bad));
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+async function api(path, method = 'GET', body) {
+  const res = await fetch(path, {
+    method,
+    headers: { 'x-ui-token': TOKEN, 'content-type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  const text = await res.text();
+  let json = {};
+  try { json = text ? JSON.parse(text) : {}; } catch { json = { raw: text }; }
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json;
+}
+
+// ── tab ──
+document.querySelectorAll('nav button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('section.tab').forEach((s) => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+function setDot(id, txtId, state, label) {
+  const dot = document.getElementById(id);
+  dot.className = 'dot ' + (state === true ? 'on' : state === false ? 'off' : 'wait');
+  document.getElementById(txtId).textContent = label;
+}
+
+function fmtNum(n) {
+  return Number(n || 0).toLocaleString('zh-CN');
+}
+
+function fmtDur(ms) {
+  if (!ms) return '—';
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return s + ' 秒';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + ' 分 ' + (s % 60) + ' 秒';
+  return Math.floor(m / 60) + ' 时 ' + (m % 60) + ' 分';
+}
+
+async function refresh() {
+  try {
+    const s = await api('/api/state');
+    setDot('dotAgent', 'txtAgent', s.agent.running, s.agent.running ? '对话运行中' : '对话未启动');
+    setDot('dotNapcat', 'txtNapcat', s.napcat.ready, s.napcat.ready ? 'QQ 链路就绪' : 'QQ 未就绪');
+
+    document.getElementById('nWebui').innerHTML = s.napcat.webui ? '<span class="pill ok">在线</span>' : '<span class="pill bad">关闭</span>';
+    document.getElementById('nHttp').innerHTML = s.napcat.http ? '<span class="pill ok">在线</span>' : '<span class="pill bad">关闭</span>';
+    document.getElementById('nWs').innerHTML = s.napcat.ws ? '<span class="pill ok">在线</span>' : '<span class="pill bad">关闭</span>';
+
+    document.getElementById('aState').textContent = s.agent.running ? '运行中' : '未运行';
+    document.getElementById('aPid').textContent = s.agent.pid ?? '—';
+    document.getElementById('aUp').textContent = fmtDur(s.agent.uptimeMs);
+
+    document.getElementById('uTokens').textContent = fmtNum(s.usage.tokens);
+    document.getElementById('uRounds').textContent = fmtNum(s.usage.rounds);
+    document.getElementById('uBudget').textContent = s.usage.budget ? fmtNum(s.usage.budget) : '不限';
+    document.getElementById('sTokens').textContent = fmtNum(s.usage.tokens);
+
+    const box = document.getElementById('logBox');
+    const near = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
+    box.innerHTML = (s.logs || []).map((l) => {
+      const cls = /\b(error|×|失败|错误)\b/i.test(l.text) ? 'err'
+        : /\b(warn|!|拦截|超限)\b/i.test(l.text) ? 'warn' : '';
+      return `<div class="${cls}">${l.text.replace(/</g, '&lt;')}</div>`;
+    }).join('') || '<div>暂无日志</div>';
+    if (near) box.scrollTop = box.scrollHeight;
+  } catch (error) {
+    setDot('dotAgent', 'txtAgent', null, '控制台连接失败');
+  }
+}
+
+// ── 加载配置 ──
+async function loadConfig() {
+  const data = await api('/api/config');
+  CFG = data.config;
+  const c = CFG;
+
+  document.getElementById('modelLine').textContent = `模型 ${data.lockedModel}（已锁定） · 强度 ${c.model.effort}`;
+  document.getElementById('mode').value = c.mode;
+  document.getElementById('effort').value = c.model.effort;
+  document.getElementById('rpm').value = c.limits.roundsPerMinutePerGroup;
+  document.getElementById('rph').value = c.limits.roundsPerHourPerGroup;
+  document.getElementById('budget').value = c.limits.dailyTokenBudget;
+  document.getElementById('maxTurns').value = c.limits.maxTurnsPerRound;
+  document.getElementById('maxChars').value = c.send.maxCharsPerMessage;
+  document.getElementById('gapMin').value = c.send.splitIntervalMinMs;
+  document.getElementById('gapMax').value = c.send.splitIntervalMaxMs;
+  document.getElementById('delayMin').value = c.send.replyDelayMinMs;
+  document.getElementById('delayMax').value = c.send.replyDelayMaxMs;
+
+  document.getElementById('searchOn').checked = c.search?.enabled !== false;
+
+  const w = c.persona.wake;
+  document.getElementById('wakeProb').value = w.probability;
+  document.getElementById('wakePm').value = w.wakePerMinute;
+  document.getElementById('wakePh').value = w.wakePerHour;
+  document.getElementById('wAt').checked = Boolean(w.atMention);
+  document.getElementById('wName').checked = Boolean(w.nameMention);
+  document.getElementById('wQ').checked = Boolean(w.question);
+  document.getElementById('wPoke').checked = Boolean(w.poke);
+  document.getElementById('wakeKeywords').value = (w.keywords || []).join(', ');
+
+  document.getElementById('groups').value = (c.allow.groups || []).join('\n');
+  document.getElementById('privates').value = (c.allow.private || []).join('\n');
+  document.getElementById('ownerQQ').value = c.identity.ownerQQ || '';
+  document.getElementById('denyUsers').value = (c.allow.denyUsers || []).join('\n');
+  document.getElementById('denyKeywords').value = (c.allow.denyKeywords || []).join('\n');
+  document.getElementById('mustReply').value = (c.allow.mustReplyKeywords || []).join('\n');
+
+  const k = data.apikey;
+  document.getElementById('keyState').innerHTML = k.configured
+    ? `<span class="pill ok">已配置 ${k.masked}</span>`
+    : '<span class="pill bad">未配置</span>';
+  document.getElementById('keySource').textContent = { env: '环境变量', file: 'data/secrets.json', none: '—' }[k.source] || k.source;
+}
+
+async function loadContexts() {
+  const box = document.getElementById('ctxList');
+  try {
+    const r = await api('/api/contexts');
+    const list = r.contexts || [];
+    if (!list.length) {
+      box.innerHTML = r.offline
+        ? '<div class="hint">对话进程未运行，没有可查看的上下文。</div>'
+        : '<div class="hint">暂无上下文（还没收到消息，或已清空）。</div>';
+      return;
+    }
+    box.innerHTML = list.map((c) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px">${c.key}　<span class="pill">${c.count} 条</span></div>
+          <div class="hint" style="margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${String(c.preview || '').replace(/</g, '&lt;')}</div>
+        </div>
+        <button class="btn" style="padding:5px 12px;font-size:12px" data-clear="${c.key}">清除</button>
+      </div>
+    `).join('');
+    box.querySelectorAll('[data-clear]').forEach((btn) => {
+      btn.onclick = async () => {
+        try {
+          await api('/api/contexts/clear', 'POST', { key: btn.dataset.clear });
+          toast('已清除 ' + btn.dataset.clear);
+          loadContexts();
+        } catch (e) { toast('清除失败：' + e.message, true); }
+      };
+    });
+  } catch (e) {
+    box.innerHTML = `<div class="hint">读取上下文失败：${e.message}</div>`;
+  }
+}
+
+async function loadRole() {
+  const r = await api('/api/role');
+  document.getElementById('rolePath').textContent = r.path;
+  document.getElementById('roleText').value = r.text;
+  document.getElementById('roleCount').textContent = `${r.text.length} 字`;
+}
+
+const parseIds = (v) => v.split(/[\s,，]+/).map((s) => s.trim()).filter(Boolean).map(Number).filter((n) => n > 0);
+const parseWords = (v) => v.split(/[\n,，]+/).map((s) => s.trim()).filter(Boolean);
+
+// ── 按钮 ──
+document.getElementById('btnStart').onclick = async () => {
+  try { await api('/api/agent/start', 'POST', {}); toast('已启动对话'); refresh(); }
+  catch (e) { toast('启动失败：' + e.message, true); }
+};
+document.getElementById('btnStop').onclick = async () => {
+  try { await api('/api/agent/stop', 'POST', {}); toast('已停止对话'); refresh(); }
+  catch (e) { toast('停止失败：' + e.message, true); }
+};
+document.getElementById('btnRestart').onclick = async () => {
+  try { await api('/api/agent/restart', 'POST', {}); toast('已重启对话'); refresh(); }
+  catch (e) { toast('重启失败：' + e.message, true); }
+};
+document.getElementById('btnNapcat').onclick = async () => {
+  try { const r = await api('/api/napcat/start', 'POST', {}); toast(r.hint || '已打开 NapCat'); }
+  catch (e) { toast('NapCat 启动失败：' + e.message, true); }
+};
+document.getElementById('btnOpenNapcat').onclick = () => window.open('http://127.0.0.1:6099', '_blank');
+
+document.getElementById('btnSaveBehavior').onclick = async () => {
+  const patch = {
+    mode: document.getElementById('mode').value,
+    search: { enabled: document.getElementById('searchOn').checked },
+    model: { effort: document.getElementById('effort').value },
+    limits: {
+      roundsPerMinutePerGroup: Number(document.getElementById('rpm').value),
+      roundsPerHourPerGroup: Number(document.getElementById('rph').value),
+      dailyTokenBudget: Number(document.getElementById('budget').value),
+      maxTurnsPerRound: Number(document.getElementById('maxTurns').value)
+    },
+    send: {
+      maxCharsPerMessage: Number(document.getElementById('maxChars').value),
+      splitIntervalMinMs: Number(document.getElementById('gapMin').value),
+      splitIntervalMaxMs: Number(document.getElementById('gapMax').value),
+      replyDelayMinMs: Number(document.getElementById('delayMin').value),
+      replyDelayMaxMs: Number(document.getElementById('delayMax').value)
+    },
+    persona: {
+      wake: {
+        probability: Number(document.getElementById('wakeProb').value),
+        wakePerMinute: Number(document.getElementById('wakePm').value),
+        wakePerHour: Number(document.getElementById('wakePh').value),
+        atMention: document.getElementById('wAt').checked,
+        nameMention: document.getElementById('wName').checked,
+        question: document.getElementById('wQ').checked,
+        poke: document.getElementById('wPoke').checked,
+        keywords: parseWords(document.getElementById('wakeKeywords').value)
+      }
+    }
+  };
+  try { await api('/api/config', 'POST', patch); toast('行为设置已保存，重启对话后生效'); loadConfig(); refresh(); }
+  catch (e) { toast('保存失败：' + e.message, true); }
+};
+
+document.getElementById('btnSaveRole').onclick = async () => {
+  const text = document.getElementById('roleText').value;
+  try { const r = await api('/api/role', 'POST', { text }); document.getElementById('roleCount').textContent = `${r.length} 字`; toast('角色卡已保存'); }
+  catch (e) { toast('保存失败：' + e.message, true); }
+};
+document.getElementById('btnReloadRole').onclick = () => loadRole().then(() => toast('已重新载入')).catch((e) => toast('载入失败：' + e.message, true));
+
+document.getElementById('btnSaveLists').onclick = async () => {
+  const patch = {
+    identity: { ownerQQ: Number(document.getElementById('ownerQQ').value) || 0 },
+    allow: {
+      groups: parseIds(document.getElementById('groups').value),
+      private: parseIds(document.getElementById('privates').value),
+      denyUsers: parseIds(document.getElementById('denyUsers').value),
+      denyKeywords: parseWords(document.getElementById('denyKeywords').value),
+      mustReplyKeywords: parseWords(document.getElementById('mustReply').value)
+    }
+  };
+  try { await api('/api/config', 'POST', patch); toast('名单已保存，重启对话后生效'); loadConfig(); refresh(); }
+  catch (e) { toast('保存失败：' + e.message, true); }
+};
+
+document.getElementById('btnSaveKey').onclick = async () => {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) return toast('请先填入 Key', true);
+  try { const r = await api('/api/apikey', 'POST', { key }); document.getElementById('apiKey').value = ''; toast('Key 已保存（' + r.apikey.masked + '）'); loadConfig(); }
+  catch (e) { toast('保存失败：' + e.message, true); }
+};
+document.getElementById('btnClearKey').onclick = async () => {
+  try { await api('/api/apikey', 'POST', { key: '' }); toast('Key 已清除'); loadConfig(); }
+  catch (e) { toast('清除失败：' + e.message, true); }
+};
+
+document.getElementById('btnClearAll').onclick = async () => {
+  try {
+    const r = await api('/api/contexts/clear', 'POST', {});
+    toast(`已清除 ${r.cleared} 个会话的上下文`);
+    loadContexts();
+  } catch (e) { toast('清除失败：' + e.message, true); }
+};
+
+document.getElementById('roleText').addEventListener('input', (e) => {
+  document.getElementById('roleCount').textContent = `${e.target.value.length} 字`;
+});
+
+// 启动时若没有 token 提示一下
+if (!TOKEN) {
+  document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif">缺少访问令牌。请用带 ?token= 的地址打开（令牌在 data/ui-token）。</div>';
+} else {
+  loadConfig().catch((e) => toast('配置加载失败：' + e.message, true));
+  loadRole().catch(() => {});
+  loadContexts();
+  refresh();
+  setInterval(refresh, 3000);
+  setInterval(loadContexts, 6000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+{
+  "onebot": {
+    "wsUrl": "ws://127.0.0.1:3001",
+    "httpUrl": "http://127.0.0.1:3000",
+    "accessToken": "",
+    "selfQQ": 0
+  },
+  "identity": {
+    "ownerQQ": 0,
+    "roleCard": "roles/小鲸鱼.md",
+    "nickname": "小鲸鱼"
+  },
+  "mode": "persona",
+  "model": {
+    "name": "deepseek-v4.1-flash",
+    "effort": "high"
+  },
+  "limits": {
+    "maxTurnsPerRound": 4,
+    "roundsPerMinutePerGroup": 6,
+    "roundsPerHourPerGroup": 40,
+    "dailyTokenBudget": 8000000,
+    "sessionMaxTokens": {
+      "chat": 120000,
+      "persona": 300000
+    },
+    "breaker": {
+      "failures": 3,
+      "pauseMs": 600000
+    }
+  },
+  "send": {
+    "maxCharsPerMessage": 500,
+    "splitIntervalMinMs": 1000,
+    "splitIntervalMaxMs": 3000,
+    "replyDelayMinMs": 800,
+    "replyDelayMaxMs": 2500
+  },
+  "allow": {
+    "groups": [],
+    "private": [],
+    "denyUsers": [],
+    "denyKeywords": [],
+    "mustReplyKeywords": []
+  },
+  "persona": {
+    "wake": {
+      "probability": 0,
+      "atMention": true,
+      "nameMention": true,
+      "question": false,
+      "poke": true,
+      "keywords": [],
+      "batchWindowMs": 8000,
+      "wakePerMinute": 1,
+      "wakePerHour": 12,
+      "replyCheckMs": 180000
+    },
+    "context": {
+      "recentMessages": 20,
+      "maxCharsPerMessage": 200
+    }
+  },
+  "search": {
+    "enabled": true
+  },
+  "injection": {
+    "stripZeroWidth": true,
+    "maxCharsPerMessage": 500,
+    "wrapAsData": true
+  },
+  "ui": {
+    "host": "127.0.0.1",
+    "port": 3100,
+    "consoleToken": ""
+  }
+}

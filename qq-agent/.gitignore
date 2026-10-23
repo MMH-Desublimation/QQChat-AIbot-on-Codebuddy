@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+logs/
+data/
+*.log
+state/
+.DS_Store
+
+# 本机私有配置（真实群号/QQ号），模板 config/config.json 才提交
+config/config.local.json
+
+# 角色卡含主人 QQ、真实关系与个人设定，属私有内容，不随仓库发布
+roles/
